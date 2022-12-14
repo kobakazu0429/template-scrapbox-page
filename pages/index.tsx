@@ -5,6 +5,7 @@ import styled from "styled-components";
 import { useForm, FormProvider } from "react-hook-form";
 import Mustache from "mustache";
 import { VariableInput } from "../components/VariableInput";
+import { VariableToggle } from "../components/VariableToggle";
 import { useCallback, useMemo, useState } from "react";
 import { getServerURL } from "../utils/server";
 
@@ -21,7 +22,7 @@ const extractVariables = (text: string[]) => {
       text
         .map((v) => Mustache.parse(v, Mustache.tags))
         .flat(1)
-        .filter(([type]) => type === "name")
+        .filter(([type]) => ["name", "#"].includes(type))
         .map(([, name]) => name)
     )
   );
@@ -48,6 +49,11 @@ const Home: NextPage<Props> = (props) => {
 
   const handleCreate = useCallback(() => {
     const values = methods.getValues();
+    for (const key in values) {
+      if (!key.startsWith("is_")) continue;
+      if (typeof values[key] === "boolean") continue;
+      values[key] = false;
+    }
     let isOk = true;
     if (Object.values(values).some((v) => v === "")) {
       isOk = confirm(
@@ -110,9 +116,12 @@ const Home: NextPage<Props> = (props) => {
               </FormGroup>
 
               <Stack gap={1}>
-                {variables.map((v) => (
-                  <VariableInput key={v} variable={v} />
-                ))}
+                {variables.map((v) => {
+                  if (v.startsWith("is_")) {
+                    return <VariableToggle key={v} variable={v} />;
+                  }
+                  return <VariableInput key={v} variable={v} />;
+                })}
               </Stack>
 
               <Button onClick={handleCreate}>作成</Button>
